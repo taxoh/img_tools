@@ -48,27 +48,27 @@ function img_generate(&$save_to, $width = 600, $height = 600, $density = 0.15, $
 	$label_count = ceil(sqrt($width*$height)*$density);
 	$colors = explode('|', '003366|336699|3366CC|003399|000099|0000CC|000066|006666|006699|0099CC|0066CC|0033CC|0000FF|3333FF|333399|669999|009999|33CCCC|00CCFF|0099FF|0066FF|3366FF|3333CC|666699|'.'339966|00CC99|00FFCC|00FFFF|33CCFF|3399FF|6699FF|6666FF|6600FF|6600CC|339933|00CC66|00FF99|66FFCC|66FFFF|66CCFF|99CCFF|9999FF|9966FF|9933FF|9900FF|006600|00CC00|00FF00|'.	'66FF99|99FFCC|CCFFFF|CCCCFF|CC99FF|CC66FF|CC33FF|CC00FF|9900CC|003300|009933|33CC33|66FF66|99FF99|CCFFCC|FFFFFF|FFCCFF|FF99FF|FF66FF|FF00FF|CC00CC|660066|336600|009900|'.	'66FF33|99FF66|CCFF99|FFFFCC|FFCCCC|FF99CC|FF66CC|FF33CC|CC0099|993399|333300|669900|99FF33|CCFF66|FFFF99|FFCC99|FF9999|FF6699|FF3399|CC3399|990099|666633|99CC00|CCFF33|'.'FFFF66|FFCC66|FF9966|FF6666|FF0066|CC6699|993366|999966|CCCC00|FFFF00|FFCC00|FF9933|FF6600|FF5050|CC0066|660033|996633|CC9900|FF9900|CC6600|FF3300|FF0000|CC0000|990033|'.'663300|996600|CC3300|993300|990000|800000|993333');
 	$sz = 7;
-	$colors = array_slice($colors,mt_rand(0,count($colors)-1-$sz),$sz);
+	$colors = array_slice($colors,rand(0,count($colors)-1-$sz),$sz);
 	for ($i=1;$i<=$label_count;$i++)
 	{
 		$a = range('a','z');
 		shuffle($a);
-		$text = implode('', array_slice($a,0,mt_rand(1,13)));
+		$text = implode('', array_slice($a,0,rand(1,13)));
 		$color = $colors[array_rand($colors)];
-		$font = $system_fonts[mt_rand(0,count($system_fonts)-1)];
+		$font = $system_fonts[rand(0,count($system_fonts)-1)];
 		$draw = new \ImagickDraw();
 		$draw->setFont($font);
-		$draw->setFontSize(mt_rand(32,140));
+		$draw->setFontSize(rand(32,140));
 		$draw->setFillColor('#'.$color);
 		$draw->translate(floor($width/2), floor($height/2));
-		$draw->rotate(mt_rand(0,360));
-		$draw->annotation(floor(mt_rand(-$width/2, $width/2)), floor(mt_rand(-$height/2,$height/2)), $text);
+		$draw->rotate(rand(0,360));
+		$draw->annotation(floor(rand(-$width/2, $width/2)), floor(rand(-$height/2,$height/2)), $text);
 		$im->drawImage($draw);
 		if ($blur_level && ($i % floor($label_count/2+1))==0)
 		{$im->blurImage(0,$blur_level);}
 	}
 	if ($distort)
-	{$im->distortImage(imagick::DISTORTION_SHEPARDS, [mt_rand(0,$width), mt_rand(0,$height), mt_rand(0,$width), mt_rand(0,$height), mt_rand(0,$width), mt_rand(0,$height), mt_rand(0,$width), mt_rand(0,$height)], false);}
+	{$im->distortImage(imagick::DISTORTION_SHEPARDS, [rand(0,$width), rand(0,$height), rand(0,$width), rand(0,$height), rand(0,$width), rand(0,$height), rand(0,$width), rand(0,$height)], false);}
 	if (!$is_obj)
 	{
 		preg_match('#\.(\w+)$#', $save_to, $m);
@@ -88,9 +88,9 @@ function img_rcolor()
 	$count = 50;
 	for ($j=0;$j<$count;$j++)
 	{
-		$xr = mt_rand(0x00, 0xff);
-		$xg = mt_rand(0x00, 0xff);
-		$xb = mt_rand(0x00, 0xff);
+		$xr = rand(0x00, 0xff);
+		$xg = rand(0x00, 0xff);
+		$xb = rand(0x00, 0xff);
 		$diff = abs(max($xr,$xg,$xb)-min($xr,$xg,$xb));
 		if ($diff>$prev_diff)
 		{
@@ -107,7 +107,7 @@ function img_rcolor()
 		$filename - путь к файлу
 	Вернет объект Imagick.
 */
-function img_load($filename)
+function img_open($filename)
 {return new imagick($filename);}
 
 /*	Сохранить изображение.
@@ -119,22 +119,43 @@ function img_save($im, $filename)
 
 /*	Получить размеры изображения.
 		$im - объект Imagick
-	Вернет массив с двумя числами, например: [0 => 640, 1 => 480]
+	Вернет массив вида:
+		['width' => 640, 'height' => 480]
 */
 function img_size($im)
 {
-	$size = $im->getImageGeometry();
-	return [$size['width'], $size['height']];
+	$sz = $im->getImageGeometry();
+	extract($sz);
+	return compact('width', 'height');
 }
 
-/*	Обычный ресайз изображения.
+/*	Ресайз изображения в произвольные размеры.
 		$im - объект Imagick
 		$width - ширина
 		$height - высота
-		$best_fit - (true/false) уместить в одно из измерений, сохранив пропорции
 */
-function img_resize($im, $width, $height, $best_fit)
-{$im->resizeImage($width, $height, imagick::FILTER_BOX, 1.0, (bool)$best_fit);}
+function img_resize($im, $width, $height)
+{$im->resizeImage($width, $height, imagick::FILTER_BOX, 1.0, false);}
+
+/*	Ресайзнуть изображение так, чтобы оно уместилось в заданную ширину с сохранением пропорций.
+		$im - объект Imagick
+		$width - требуемая ширина
+*/
+function img_resize_w($im, $width)
+{
+	$sz = $im->getImageGeometry();
+	img_resize($im, $width, round($width*($sz['height']/$sz['width'])));
+}
+
+/*	Ресайзнуть изображение так, чтобы оно уместилось в заданную высоту с сохранением пропорций.
+		$im - объект Imagick
+		$height - требуемая высота
+*/
+function img_resize_h($im, $height)
+{
+	$sz = $im->getImageGeometry();
+	img_resize($im, round($height*($sz['width']/$sz['height'])), $height);
+}
 
 /*	Изменить качество изображения. Применимо к JPG.
 		$im - объект Imagick
@@ -321,8 +342,8 @@ function img_frame(&$im, $params = [])
 		$tile = new Imagick($tile_src);
 		if ($tile_rand) 
 		{
-			$xx = mt_rand(0,200);
-			$yy = mt_rand(0,200);
+			$xx = rand(0,200);
+			$yy = rand(0,200);
 		}
 		$im2 = new Imagick();
 		$im2->newImage($w+$xx, $h+$yy, '#fff');
